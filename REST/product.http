@@ -1,0 +1,29 @@
+//Raiz do projeto
+GET http://localhost:5287
+
+//Segunda Requisicao
+//Listar produtos
+###
+GET http://localhost:5287/api/product/list
+
+//Buscar produto pelo nome
+###
+GET http://localhost:5287/api/product/buscar/Teclado
+
+//Cadastrar
+//Tipo de dado que vou enviar (tipo json)
+###
+POST http://localhost:5287/api/product/cadastrar
+Content-Type: application/json
+
+{
+  "name": "Teclado"
+}
+
+###
+DELETE http://localhost:5287/api/product/remove 
+
+
+###
+Teste de retorno sucesso
+//GET http://www.google.com
