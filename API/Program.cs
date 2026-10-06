@@ -2,52 +2,105 @@
 //2- Entrar na pasta da solucao
 //3- Criar o projeto
 //4- Vincular o projeto para a solucao
+using API.Data;
 using API.Models;
-using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDbContext<AppDataContext>();
 var app = builder.Build();
 
-List<Product> products = new List<Product>(){
-    new Product { Name = "Placa-mãe ASUS ROG Strix B550-F" },
-    new Product { Name = "Processador AMD Ryzen 7 5800X" },
-    new Product { Name = "Memória RAM Corsair Vengeance 16GB DDR4" },
-    new Product { Name = "SSD NVMe Kingston NV2 1TB" },
-    new Product { Name = "Placa de Vídeo NVIDIA GeForce RTX 4070" },
-    new Product { Name = "Fonte Corsair RM750x 750W 80 Plus Gold" },
-    new Product { Name = "Gabinete Cooler Master MasterBox TD500" },
-    new Product { Name = "Water Cooler Corsair iCUE H100i" },
-    new Product { Name = "Monitor LG UltraGear 27 165Hz" },
-    new Product { Name = "Fone Headset Gamer HyperX Cloud II" }
-};
+List<Product> products = new List<Product>();
 
 //FUNCIONALIDADES - EndPoint
 //Requisicoes
 //----METODO HTTP
 //----URL
+//OPCIONAL: Corpo (Produto q recebemos)/ Parametros de URL para receber informacao (poder manipular)
+
 //Respostas
 //----Date/informacao
 
-
-//GET: /http://localhost:5287/
+//GET: http://localhost:5287/
 app.MapGet("/", () => "API ECOMMERCE!");
 
-//GET: /api/product/listar
-app.MapGet("/api/product/list", () => {
-    return products;
-});
-
-app.MapPost("/api/product/cadastrar", (Product product) =>
+//GET: /api/product/list
+//Retorna a lista de produtos (200 com lista vazia quando nao ha produtos)
+app.MapGet("/api/product/list", () =>
 {
-    products.Add(product);
-    return                                          //Porque estou retornando o produto que recebi?
-    Results.Created("", product);               //Retorna o produto para que o cliente saiba exatamente o que foi persistido
+    return Results.Ok(products);
 });
 
+//POST: /api/product/cadastrar
+app.MapPost("/api/product/cadastrar", ([FromBody] Product? product, [FromServices] AppDataContext ctx) =>
+{
+    if (product is null)
+    {
+        return Results.BadRequest("ERROR: produto NULL");
+    }
+
+    if (string.IsNullOrWhiteSpace(product.Name))
+    {
+        return Results.BadRequest("ERROR: Entrada vazia");
+    }
+
+    //Verifica se o produto existe na lista
+    if (products.Any(p => p.Name == product.Name))
+    {
+        return Results.BadRequest("ERROR: Produto existente");
+    }
+
+    //products.Add(product);
+    ctx.Produtos.Add(product);
+    ctx.SaveChanges(); //Precisa add para fazer o commit no DB
+
+    //Retorna o produto para que o cliente saiba exatamente o que foi persistido
+    return Results.Created("", product);
+});
+
+//GET: /api/product/buscar/{name}
+app.MapGet("/api/product/buscar", ([FromServices] AppDataContext ctx) =>
+{
+    //Expressao lambda
+    //Product? produtoEncontrado = products.FirstOrDefault(p => p.Name == name);
+    if(ctx.Produtos.Count() == 0)
+    {
+        return Results.BadRequest("ERROR");
+    }
+    return Results.Ok(ctx.Produtos.ToList());
+});
+
+//DELETE: /api/product/remover/{id}
+app.MapDelete("/api/product/remover", ([FromServices] AppDataContext ctx) =>
+{
+    Product? produtoEncontrado = products.FirstOrDefault(p => p.Id == id);
+    if (produtoEncontrado is null)
+    {
+        return Results.NotFound("ERROR: NOT FOUND");
+    }
+    //products.Remove(produtoEncontrado);
+    ctx.Produtos.Remove(product);
+    ctx.SaveChanges();
+
+    return Results.Ok(produtoEncontrado);
+});
+
+//PATCH: Alterar produtos | Vem da ROUTE[ID] | VEM DO CORPO [product]
+app.MapPatch("/api/product/alterar/{id}", ([FromRoute] string id, [FromBody] Product produtoAlterado) =>
+{
+    Product? produtoEncontrado = products.FirstOrDefault(p => p.Id == id);
+    if (produtoEncontrado is null)
+    {
+        return Results.NotFound("ERROR: NOT FOUND");
+    }
+
+    if (string.IsNullOrWhiteSpace(produtoAlterado.Name))
+    {
+        return Results.BadRequest("ERROR: Entrada vazia");
+    }
+
+    produtoEncontrado.Name = produtoAlterado.Name;
+    return Results.Ok(produtoEncontrado);
+});
 
 app.Run();
-
-
-//Product product = new Product()
-//product.Name = "TECLADO"
-//Console.WriteLine(product.Name())

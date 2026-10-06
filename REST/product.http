@@ -21,8 +21,15 @@ Content-Type: application/json
 }
 
 ###
-DELETE http://localhost:5287/api/product/remove 
+DELETE http://localhost:5287/api/product/remove/
 
+###
+PATCH  http://localhost:5287/api/product/alterar
+Content-Type: application/json
+
+{
+  "name": "Teclado"
+}
 
 ###
 Teste de retorno sucesso
